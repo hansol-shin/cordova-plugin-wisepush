@@ -1,0 +1,35 @@
+{
+  "name": "cordova-plugin-wisepush",
+  "version": "0.0.1",
+  "description": "Cordova Wisepush Plugin",
+  "cordova": {
+    "id": "cordova-plugin-wisepush",
+    "platforms": [
+      "android"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hansol-shin/cordova-plugin-wisepush.git"
+  },
+  "keywords": [
+    "cordova",
+    "wisepush",
+    "push",
+    "plugin",
+    "ecosystem:cordova",
+    "cordova-android"
+  ],
+  "engines": [
+    {
+      "name": "cordova-android",
+      "version": ">=4.0.0"
+    }
+  ],
+  "author": "hansol-shin",
+  "license": "Apache 2.0",
+  "bugs": {
+    "url": "https://github.com/hansol-shin/cordova-plugin-wisepush/issues"
+  },
+  "homepage": "https://github.com/hansol-shin/cordova-plugin-wisepush#readme"
+}

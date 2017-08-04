@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+           id="cordova-plugin-wisepush"
+      version="0.0.1">
+    <name>WPClient</name>
+    <description>Cordova Wisepush Plugin</description>
+    <license>Apache 2.0</license>
+    <keywords>cordova, wisepush, push, plugin</keywords>
+    
+    <info>
+		Cordova Wisepush plugin v0.0.1
+	</info>
+	
+    <js-module src="www/WPClient.js" name="WPClient">
+	    <clobbers target="WPClient" />
+    </js-module>
+
+    <engines>
+	    <engine name="cordova-android" version=">=4.0.0" />
+    </engines>
+
+    <!-- ANDROID CONFIGURATION -->
+    <platform name="android">
+        <source-file src="src/android/WPClient.java" target-dir="src/kr/co/itsm/plugin" />
+    </platform>
+</plugin>
