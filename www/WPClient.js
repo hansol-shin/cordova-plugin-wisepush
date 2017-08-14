@@ -4,38 +4,50 @@ function WPClient() {
     console.log("WPClient.js: is created");
 }
 
+// VERIFY CONNECTION
+WPClient.prototype.isConnected = function( success, error ){
+	exec(success, error, "WPPlugin", 'isConnected', []);
+}
 // GET DEVICE ID
-FCMPlugin.prototype.getDeviceId = function( success, error ){
-	exec(success, error, "WPClient", 'getDeviceId', []);
+WPClient.prototype.getDeviceId = function( success, error ){
+	exec(success, error, "WPPlugin", 'getDeviceId', []);
 }
 // GET CLIENT ID
-FCMPlugin.prototype.getClientId = function( success, error ){
-	exec(success, error, "WPClient", 'getClientId', []);
+WPClient.prototype.getClientId = function( success, error ){
+	exec(success, error, "WPPlugin", 'getClientId', []);
 }
 // SUBSCRIBE TO TOPIC //
-FCMPlugin.prototype.subscribeToTopic = function( topic, success, error ){
-	exec(success, error, "WPClient", 'subscribeToTopic', [topic]);
+WPClient.prototype.subscribeToTopic = function( topics, success, error ){
+	exec(success, error, "WPPlugin", 'subscribeToTopic', [topics]);
 }
 // UNSUBSCRIBE FROM TOPIC //
-FCMPlugin.prototype.unsubscribeFromTopic = function( topic, success, error ){
-	exec(success, error, "WPClient", 'unsubscribeFromTopic', [topic]);
+WPClient.prototype.unsubscribeFromTopic = function( topics, success, error ){
+	exec(success, error, "WPPlugin", 'unsubscribeFromTopic', [topics]);
+}
+// GET PREFERENCES //
+WPClient.prototype.getPreferences = function( success, error ){
+	exec(success, error, "WPPlugin", 'getPreferences', []);
+}
+// SET PREFERENCES //
+WPClient.prototype.setPreferences = function( sound, vibrate, success, error ){
+	exec(success, error, "WPPlugin", 'setPreferences', [sound, vibrate]);
 }
 // NOTIFICATION CALLBACK //
-CMPlugin.prototype.onNotification = function( callback, success, error ){
-	FCMPlugin.prototype.onNotificationReceived = callback;
-	exec(success, error, "WPClient", 'registerNotification',[]);
-}
+// WPClient.prototype.onNotification = function( callback, success, error ){
+// 	WPClient.prototype.onNotificationReceived = callback;
+// 	exec(success, error, "WPPlugin", 'registerNotification',[]);
+// }
 // DEVICE ID REFRESH CALLBACK //
-FCMPlugin.prototype.onDeviceIdChange = function( callback ){
-	FCMPlugin.prototype.onDeviceIdChanged = callback;
+WPClient.prototype.onDeviceIdChange = function( callback ){
+	WPClient.prototype.onDeviceIdChanged = callback;
 }
 // DEFAULT NOTIFICATION CALLBACK //
-WPClient.prototype.onNotificationReceived = function(payload){
-	console.log("Received push notification")
-	console.log(payload)
-}
+// WPClient.prototype.onNotificationReceived = function(payload){
+// 	console.log("Received push notification")
+// 	console.log(payload)
+// }
 // DEFAULT DEVICE ID REFRESH CALLBACK //
-FCMPlugin.prototype.onDeviceIdChanged = function(deviceId){
+WPClient.prototype.onDeviceIdChanged = function(deviceId){
 	console.log("Device ID refresh")
 	console.log(deviceId)
 }

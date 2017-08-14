@@ -21,6 +21,54 @@
 
     <!-- ANDROID CONFIGURATION -->
     <platform name="android">
-        <source-file src="src/android/WPClient.java" target-dir="src/kr/co/itsm/plugin" />
+        <config-file target="AndroidManifest.xml" parent="/*">
+            <uses-permission android:name="android.permission.VIBRATE" />
+            <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+        </config-file>
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <service android:name="kr.co.itsm.plugin.WPService" android:enabled="true"></service>
+            <service android:name="org.eclipse.paho.android.service.MqttService"></service>
+			<service android:name="com.wp.android.service.WPFirebaseMessagingService">
+				<intent-filter>
+					<action android:name="com.google.firebase.MESSAGING_EVENT"/>
+				</intent-filter>
+			</service>
+			<service android:name="com.wp.android.service.WPFirebaseInstanceIDService">
+				<intent-filter>
+					<action android:name="com.google.firebase.INSTANCE_ID_EVENT"/>
+				</intent-filter>
+			</service>
+            <receiver android:name="kr.co.itsm.plugin.WPStartUp" android:enabled="true" android:exported="false">
+                <intent-filter>
+                    <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                </intent-filter>
+            </receiver>
+		</config-file>
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="WPPlugin" >
+                <param name="android-package" value="kr.co.itsm.plugin.WPPlugin"/>
+                <param name="onload" value="true" />
+            </feature>
+		</config-file>
+
+        <framework src="com.fasterxml.jackson.core:jackson-databind:2.8.5" />
+        <framework src="com.fasterxml.jackson.core:jackson-core:2.8.5" />
+        <framework src="com.fasterxml.jackson.core:jackson-annotations:2.8.5" />
+        <framework src="org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.1" />
+        <framework src="com.google.firebase:firebase-core:10.2.1" />
+        <framework src="com.google.firebase:firebase-messaging:10.2.1" />
+        <framework src="com.google.firebase:firebase-auth:10.2.1" />
+        <framework src="com.android.support:multidex:1.0.1" />
+
+        <framework src="src/android/WPPlugin.gradle" custom="true" type="gradleReference" />
+
+        <resource-file src="libs/com.wp.android.service.aar" target="libs/com.wp.android.service.aar" /> 
+        <source-file src="src/android/WPPlugin.java" target-dir="src/kr/co/itsm/plugin" />
+        <source-file src="src/android/WPService.java" target-dir="src/kr/co/itsm/plugin" />
+        <source-file src="src/android/WPStartUp.java" target-dir="src/kr/co/itsm/plugin" />
     </platform>
+
+    <!-- COPY FCM CONFIG FILES TO PLATFORM AFTER PLUGIN INSTALL OR PLATFORM PREPARE -->
+	<hook src="scripts/wp_config_files_process.js" type="after_plugin_add" />
+	<hook src="scripts/wp_config_files_process.js" type="after_prepare" />
 </plugin>
