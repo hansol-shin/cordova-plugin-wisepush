@@ -30,7 +30,11 @@ public class WPPlugin extends CordovaPlugin {
 
     private WPService mService;
     private boolean mBound = false;
-    private ServiceConnection mConnection = new ServiceConnection(){
+    public static CordovaWebView gWebView;
+	public static String notificationCallBack = "WPClient.onNotificationReceived";
+	public static Boolean notificationCallBackReady = false;
+	
+	private ServiceConnection mConnection = new ServiceConnection(){
         @Override
         public void onServiceConnected(ComponentName className, IBinder service){
             WPService.LocalBinder binder = (WPService.LocalBinder) service;
@@ -40,7 +44,11 @@ public class WPPlugin extends CordovaPlugin {
             mService.setNotificationCallback(new WPService.NotificationCallback() {
                 @Override
                 public void onMessageReceived(WPMessage msg) {
-
+					String callBack = "javascript:" + notificationCallBack + "()";
+					if(notificationCallBackReady && gWebView != null){
+						Log.d(TAG, "\tSent PUSH to view: " + callBack);
+						gWebView.sendJavascript(callBack);
+					}
                 }
             });
         }
@@ -50,11 +58,6 @@ public class WPPlugin extends CordovaPlugin {
             mBound = false;
         }
     };
-
-    public static CordovaWebView gWebView;
-	public static String notificationCallBack = "WPClient.onNotificationReceived";
-	public static String deviceIdRefreshCallBack = "WPClient.onDeviceIdChanged";
-    public static Boolean notificationCallBackReady = false;
 
     public WPPlugin() {}
 
@@ -117,14 +120,14 @@ public class WPPlugin extends CordovaPlugin {
 				});
 			}
 			// NOTIFICATION CALLBACK REGISTER //
-			// else if (action.equals("registerNotification")) {
-			// 	notificationCallBackReady = true;
-			// 	cordova.getActivity().runOnUiThread(new Runnable() {
-			// 		public void run() {
-
-			// 		}
-			// 	});
-			// }
+			else if (action.equals("registerNotification")) {
+				notificationCallBackReady = true;
+				cordova.getActivity().runOnUiThread(new Runnable() {
+					public void run() {
+						
+					}
+				});
+			}
 			// UN/SUBSCRIBE TOPICS //
 			else if (action.equals("subscribeToTopic")) {
 				cordova.getThreadPool().execute(new Runnable() {

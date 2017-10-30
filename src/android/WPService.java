@@ -6,11 +6,13 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
@@ -20,12 +22,16 @@ import com.wp.android.service.WPClient;
 import com.wp.android.service.WPException;
 import com.wp.android.service.WPMessage;
 
+import org.json.JSONObject;
+
 import java.io.BufferedInputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Arrays;
 
-import kr.or.pohang.wptest.MainActivity;
+import kr.go.pohang.smart.MainActivity;
 
 public class WPService extends Service {
     private final IBinder mBinder = new LocalBinder();
@@ -46,8 +52,6 @@ public class WPService extends Service {
     private static final String PREFERENCE_KEY = "kr.co.itsm.plugin.WPNotification";
     private static final String SOUND = "kr.co.itsm.plugin.WPNotification.SOUND";
     private static final String VIBRATE = "kr.co.itsm.plugin.WPNotification.VIBRATE";
-    private static final String TEST_TOPIC = "topics/test";
-    private static final String TEST_TOPIC1 = "topics/test1";
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId){
@@ -98,7 +102,7 @@ public class WPService extends Service {
                             NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(WPService.this)
                                     .setSmallIcon(getApplicationInfo().icon)
                                     .setContentTitle(msg.getTitle())
-                                    .setContentText(msg.getTitle())
+                                    .setContentText(msg.getSummary())
                                     .setAutoCancel(true)
                                     .setContentIntent(pendingIntent);
 
@@ -109,7 +113,7 @@ public class WPService extends Service {
                                 notificationBuilder.setVibrate(new long[]{500, 200, 1000});
 
 
-                            if (!msg.getImgUrl().isEmpty()) {
+                            if (msg.getImgUrl() != null && !msg.getImgUrl().isEmpty()) {
                                 URL url = new URL(msg.getImgUrl());
                                 URLConnection conn = url.openConnection();
                                 conn.connect();
@@ -145,10 +149,11 @@ public class WPService extends Service {
             @Override
             public void onChangeDeviceId(String deviceId) {
                 Log.d(TAG, "change deviceId:" + deviceId);
+                WPService.this.updateDevice();
             }
         });
 
-        mClient.connect();
+        this.updateDevice();
     }
 
     @Override
@@ -178,5 +183,44 @@ public class WPService extends Service {
 
     public void unsubscribeFromTopic(String[] topics) throws WPException {
         mClient.unsubscribe(topics);
+    }
+
+    private void updateDevice() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    URL url = new URL("http://itsmpohang.hssa.me:9001/device");
+
+                    HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                    urlConnection.setConnectTimeout(5000);
+                    urlConnection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                    urlConnection.setDoOutput(true);
+                    urlConnection.setDoInput(true);
+                    urlConnection.setRequestMethod("PUT");
+
+                    PackageInfo i = getPackageManager().getPackageInfo(getPackageName(), 0);
+
+                    JSONObject body = new JSONObject();
+                    body.put("clientId", mClient.getClientId());
+                    body.put("deviceId", mClient.getDeviceId());
+                    body.put("devicePlatform", "ANDROID");
+                    body.put("deviceModel", Build.MODEL);
+                    body.put("appVer", i.versionName);
+
+                    OutputStream os = urlConnection.getOutputStream();
+                    os.write(body.toString().getBytes("UTF-8"));
+                    os.close();
+
+                    int code = urlConnection.getResponseCode();
+                    Log.d(TAG, "REGISTER DEVICE: " + code);
+
+                    urlConnection.disconnect();
+
+                } catch (Exception e) {
+
+                }
+            }
+        }).start();
     }
 }
