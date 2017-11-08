@@ -12,9 +12,24 @@ repositories {
     dirs 'libs'
   }
   jcenter()
+  mavenCentral()
+  mavenLocal()
+  maven {
+      url "https://repo.eclipse.org/content/repositories/paho-release/"
+  }
 }
 dependencies {
-  compile (name:'com.wp.android.service', ext: 'aar')
+  compile ('com.wp.android.service:wpa-1.0-release:1.0@aar') {
+    transitive=true
+  }
+  compile 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.1'
+  compile 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
+  compile 'com.fasterxml.jackson.core:jackson-databind:2.8.5'
+  compile 'com.fasterxml.jackson.core:jackson-core:2.8.5'
+  compile 'com.fasterxml.jackson.core:jackson-annotations:2.8.5'
+  compile 'com.google.firebase:firebase-core:10.2.6'
+  compile 'com.google.firebase:firebase-messaging:10.2.6'
+  compile 'com.google.firebase:firebase-auth:10.2.6'
 }
 android {
   packagingOptions {
@@ -29,9 +44,9 @@ buildscript {
   }
   dependencies {
     classpath 'com.android.tools.build:gradle:2.1.2'
-    // classpath 'com.google.gms:google-services:3.0.0'
+    classpath 'com.google.gms:google-services:3.1.0'
   }
 }
 // apply plugin: 'com.google.gms.google-services'
 // class must be used instead of id(string) to be able to apply plugin from non-root gradle file
-// apply plugin: com.google.gms.googleservices.GoogleServicesPlugin
+apply plugin: com.google.gms.googleservices.GoogleServicesPlugin

@@ -206,5 +206,6 @@ public class WPPlugin extends CordovaPlugin {
 	public void onDestroy() {
 		gWebView = null;
 		notificationCallBackReady = false;
+		this.cordova.getActivity().unbindService(mConnection);
 	}
 }

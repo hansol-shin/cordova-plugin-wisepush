@@ -46,7 +46,7 @@ public class WPService extends Service {
     }
 
     private static final String TAG = "WPService";
-    private static final String SERVER_URI = "tcp://itsmpohang.hssa.me:48702";
+    private static final String SERVER_URI = "tcp://wp.hssa.me:48702";
     private WPClient mClient;
 
     private static final String PREFERENCE_KEY = "kr.co.itsm.plugin.WPNotification";
@@ -190,7 +190,7 @@ public class WPService extends Service {
             @Override
             public void run() {
                 try {
-                    URL url = new URL("http://itsmpohang.hssa.me:9001/device");
+                    URL url = new URL("http://smart.pohang.go.kr:9001/device");
 
                     HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
                     urlConnection.setConnectTimeout(5000);
