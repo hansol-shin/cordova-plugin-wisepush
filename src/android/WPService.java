@@ -1,5 +1,7 @@
 package kr.co.itsm.plugin;
 
+import android.app.AlarmManager;
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -14,6 +16,7 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
@@ -30,8 +33,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Arrays;
-
-import kr.go.pohang.smart.MainActivity;
 
 public class WPService extends Service {
     private final IBinder mBinder = new LocalBinder();
@@ -53,9 +54,30 @@ public class WPService extends Service {
     private static final String SOUND = "kr.co.itsm.plugin.WPNotification.SOUND";
     private static final String VIBRATE = "kr.co.itsm.plugin.WPNotification.VIBRATE";
 
+//    private NotificationCompat.Builder getNotification(){
+//        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext());
+//        return builder.setContentTitle("test")
+//        .setContentText("test")//\n"+app.getPlan().getUsage())
+//        .setSmallIcon(getApplicationInfo().icon);
+//    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId){
-        return super.onStartCommand(intent, flags, startId);
+        return START_STICKY;
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent){
+        Intent restartServiceTask = new Intent(getApplicationContext(),this.getClass());
+        restartServiceTask.setPackage(getPackageName());
+        PendingIntent restartPendingIntent =PendingIntent.getService(getApplicationContext(), 1,restartServiceTask, PendingIntent.FLAG_ONE_SHOT);
+        AlarmManager myAlarmService = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
+        myAlarmService.set(
+                AlarmManager.ELAPSED_REALTIME,
+                SystemClock.elapsedRealtime() + 1000,
+                restartPendingIntent);
+
+        super.onTaskRemoved(rootIntent);
     }
 
     @Override
@@ -65,6 +87,7 @@ public class WPService extends Service {
 
     @Override
     public void onCreate(){
+        unregisterRestartAlarm();
         mClient = new WPClient(getApplicationContext(), SERVER_URI, new WPCallback() {
 
             @Override
@@ -94,13 +117,13 @@ public class WPService extends Service {
                     public void run() {
                         try {
                             NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                            Intent intent = new Intent(WPService.this, MainActivity.class);
-                            intent.putExtra("notification", "tabbed");
+                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(msg.getUrl()));
                             PendingIntent pendingIntent = PendingIntent.getActivity(WPService.this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
                             Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
                             NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(WPService.this)
-                                    .setSmallIcon(getApplicationInfo().icon)
+                                    // .setSmallIcon(getApplicationInfo().icon)
+                                    .setSmallIcon(getResources().getIdentifier("ic_stat_pohang_", "drawable", getPackageName()))
                                     .setContentTitle(msg.getTitle())
                                     .setContentText(msg.getSummary())
                                     .setAutoCancel(true)
@@ -154,11 +177,38 @@ public class WPService extends Service {
         });
 
         this.updateDevice();
+        super.onCreate();
     }
 
     @Override
-    public void onDestroy(){
+    public void onDestroy() {
+        // TODO Auto-generated method stub
+        Log.d(TAG, "Service Destroy");
+        registerRestartAlarm(); // 서비스가 죽을 때 알람 등록
+        super.onDestroy();
+    }
 
+    void registerRestartAlarm() {
+        Log.d(TAG, "registerRestartAlarm");
+        Intent intent = new Intent(WPService.this, WPStartUp.class);
+        intent.setAction("ACTION.Restart.WPService");
+        PendingIntent sender = PendingIntent.getBroadcast(
+                WPService.this, 0, intent, 0); // 브로드케스트할 Intent
+        long firstTime = SystemClock.elapsedRealtime();  // 현재 시간
+        firstTime += 1 * 1000; // 10초 후에 알람이벤트 발생
+        AlarmManager am = (AlarmManager)getSystemService(ALARM_SERVICE); // 알람 서비스 등록
+        am.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, firstTime,
+                10 * 1000, sender); // 알람이
+    }
+
+    void unregisterRestartAlarm() {
+        Log.d(TAG, "unregisterRestartAlarm");
+        Intent intent = new Intent(WPService.this, WPStartUp.class);
+        intent.setAction("ACTION.Restart.WPService");
+        PendingIntent sender = PendingIntent.getBroadcast(
+                WPService.this, 0, intent, 0);
+        AlarmManager am = (AlarmManager)getSystemService(ALARM_SERVICE);
+        am.cancel(sender);
     }
 
     public void setNotificationCallback(NotificationCallback cb) {

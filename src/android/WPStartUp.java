@@ -8,7 +8,10 @@ public class WPStartUp extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Intent i = new Intent(context, WPService.class);
-       context.startService(i);
+        /**
+         * 폰 재시작 할때 서비스 등록
+         */
+        Intent i = new Intent(context,WPService.class);
+        context.startService(i);
     }
 }
