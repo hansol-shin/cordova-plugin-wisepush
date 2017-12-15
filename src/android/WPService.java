@@ -48,9 +48,10 @@ public class WPService extends Service {
 
     private static final String TAG = "WPService";
     private static final String SERVER_URI = "tcp://wp.hssa.me:48702";
-    private WPClient mClient;
+    private WPClient mClient = null;
 
     private static final String PREFERENCE_KEY = "kr.co.itsm.plugin.WPNotification";
+    private static final String SNOOZE = "kr.co.itsm.plugin.WPNotification.SNOOZE";
     private static final String SOUND = "kr.co.itsm.plugin.WPNotification.SOUND";
     private static final String VIBRATE = "kr.co.itsm.plugin.WPNotification.VIBRATE";
 
@@ -88,8 +89,16 @@ public class WPService extends Service {
     @Override
     public void onCreate(){
         unregisterRestartAlarm();
-        mClient = new WPClient(getApplicationContext(), SERVER_URI, new WPCallback() {
+        connect();
+        super.onCreate();
+    }
 
+    public void connect() {
+        if (mClient != null && mClient.isConnected())
+            return;
+
+        mClient = new WPClient(getApplicationContext(), SERVER_URI, new WPCallback() {
+            
             @Override
             public void onError(WPException e) {
                 Log.d(TAG, e.getMessage());
@@ -98,6 +107,8 @@ public class WPService extends Service {
             @Override
             public void onConnect(String serverURI) {
                 Log.d(TAG, "connect to " + serverURI);
+                String[] topics = {"topics/all", "topics/android"};
+                mClient.subscribe(topics);
             }
 
             @Override
@@ -107,6 +118,10 @@ public class WPService extends Service {
 
             @Override
             public void onReceived(final WPMessage msg) {
+                final SharedPreferences sharedPref = getSharedPreferences(PREFERENCE_KEY, Context.MODE_PRIVATE);
+                if (!sharedPref.getBoolean(SNOOZE, true))
+                    return;
+
                 Log.d(TAG, "received msg:" + msg.toString());
                 if (notificationCallback != null) {
                     notificationCallback.onMessageReceived(msg);
@@ -129,7 +144,7 @@ public class WPService extends Service {
                                     .setAutoCancel(true)
                                     .setContentIntent(pendingIntent);
 
-                            SharedPreferences sharedPref = getSharedPreferences(PREFERENCE_KEY, Context.MODE_PRIVATE);
+
                             if (sharedPref.getBoolean(SOUND, true))
                                 notificationBuilder.setSound(defaultSoundUri);
                             if (sharedPref.getBoolean(VIBRATE, true))
@@ -177,7 +192,6 @@ public class WPService extends Service {
         });
 
         this.updateDevice();
-        super.onCreate();
     }
 
     @Override
@@ -252,7 +266,11 @@ public class WPService extends Service {
                     PackageInfo i = getPackageManager().getPackageInfo(getPackageName(), 0);
 
                     JSONObject body = new JSONObject();
+                    Log.d(TAG, mClient.getClientId());
                     body.put("clientId", mClient.getClientId());
+                    String fcmToken = mClient.getDeviceId();
+                    if (fcmToken.equals(""))
+                        return;
                     body.put("deviceId", mClient.getDeviceId());
                     body.put("devicePlatform", "ANDROID");
                     body.put("deviceModel", Build.MODEL);

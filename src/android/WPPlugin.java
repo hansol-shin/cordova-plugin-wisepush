@@ -25,6 +25,7 @@ public class WPPlugin extends CordovaPlugin {
 	private static final String PREFERENCE_KEY = "kr.co.itsm.plugin.WPNotification";
 	private static final String SOUND = "kr.co.itsm.plugin.WPNotification.SOUND";
 	private static final String VIBRATE = "kr.co.itsm.plugin.WPNotification.VIBRATE";
+	private static final String SNOOZE = "kr.co.itsm.plugin.WPNotification.SNOOZE";
 
     private CordovaInterface cordova;
 
@@ -168,6 +169,7 @@ public class WPPlugin extends CordovaPlugin {
 				SharedPreferences sharedPref = cordova.getActivity().getSharedPreferences(PREFERENCE_KEY, Context.MODE_PRIVATE);
 				obj.put("sound", sharedPref.getBoolean(SOUND, true));
 				obj.put("vibrate", sharedPref.getBoolean(VIBRATE, true));
+				obj.put("snooze", sharedPref.getBoolean(SNOOZE, true));
 				callbackContext.success(obj);
 			}
 			else if (action.equals("setPreferences")) {
@@ -175,6 +177,7 @@ public class WPPlugin extends CordovaPlugin {
 				SharedPreferences.Editor editor = sharedPref.edit();
 				editor.putBoolean(SOUND, args.getBoolean(0));
 				editor.putBoolean(VIBRATE, args.getBoolean(1));
+				editor.putBoolean(SNOOZE, args.getBoolean(2));
 				editor.commit();
 				callbackContext.success();
 			}

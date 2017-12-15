@@ -29,8 +29,8 @@ WPClient.prototype.getPreferences = function( success, error ){
 	exec(success, error, "WPPlugin", 'getPreferences', []);
 }
 // SET PREFERENCES //
-WPClient.prototype.setPreferences = function( sound, vibrate, success, error ){
-	exec(success, error, "WPPlugin", 'setPreferences', [sound, vibrate]);
+WPClient.prototype.setPreferences = function( sound, vibrate, snooze, success, error ){
+	exec(success, error, "WPPlugin", 'setPreferences', [sound, vibrate, snooze]);
 }
 // NOTIFICATION CALLBACK //
 WPClient.prototype.onNotification = function( callback, success, error ){
