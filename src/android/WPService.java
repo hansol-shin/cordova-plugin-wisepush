@@ -47,7 +47,8 @@ public class WPService extends Service {
     }
 
     private static final String TAG = "WPService";
-    private static final String SERVER_URI = "tcp://wp.hssa.me:48702";
+    //private static final String SERVER_URI = "tcp://wp.hssa.me:48702";
+    private static final String SERVER_URI = "tcp://itsmpohang.hssa.me:48702";
     private WPClient mClient = null;
 
     private static final String PREFERENCE_KEY = "kr.co.itsm.plugin.WPNotification";
@@ -166,7 +167,7 @@ public class WPService extends Service {
                                 notificationBuilder.setStyle(style);
                             }
 
-                            nm.notify(0 /* ID of notification */, notificationBuilder.build());
+                            nm.notify((int)(long)msg.getId() /* ID of notification */, notificationBuilder.build());
                         } catch (Exception e) {
                             Log.d(TAG, e.getMessage());
                         }
