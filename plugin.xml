@@ -26,7 +26,13 @@
             <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
         </config-file>
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
-            <service android:name="kr.co.itsm.plugin.WPService" android:enabled="true"></service>
+            <service android:name="kr.co.itsm.plugin.WPService"
+                     android:permission="android.permission.BIND_JOB_SERVICE"
+                     android:enabled="true" >
+                    <intent-filter>
+                        <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                    </intent-filter>
+            </service>
             <service android:name="org.eclipse.paho.android.service.MqttService"></service>
 			<service android:name="com.wp.android.service.WPFirebaseMessagingService">
 				<intent-filter>
@@ -38,11 +44,6 @@
 					<action android:name="com.google.firebase.INSTANCE_ID_EVENT"/>
 				</intent-filter>
 			</service>
-            <receiver android:name="kr.co.itsm.plugin.WPStartUp" android:enabled="true" android:exported="false">
-                <intent-filter>
-                    <action android:name="android.intent.action.BOOT_COMPLETED"/>
-                </intent-filter>
-            </receiver>
 		</config-file>
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="WPPlugin" >
@@ -51,21 +52,67 @@
             </feature>
 		</config-file>
 
-        <framework src="com.fasterxml.jackson.core:jackson-databind:2.8.5" />
+        <!-- <framework src="com.fasterxml.jackson.core:jackson-databind:2.8.5" />
         <framework src="com.fasterxml.jackson.core:jackson-core:2.8.5" />
         <framework src="com.fasterxml.jackson.core:jackson-annotations:2.8.5" />
         <framework src="org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.1" />
-        <framework src="com.google.firebase:firebase-core:10.2.1" />
-        <framework src="com.google.firebase:firebase-messaging:10.2.1" />
-        <framework src="com.google.firebase:firebase-auth:10.2.1" />
-        <framework src="com.android.support:multidex:1.0.1" />
+        <framework src="org.eclipse.paho:org.eclipse.paho.android.service:1.1.1" />
+        <framework src="com.google.firebase:firebase-core:10.2.6" />
+        <framework src="com.google.firebase:firebase-messaging:10.2.6" />
+        <framework src="com.google.firebase:firebase-auth:10.2.6" /> -->
 
         <framework src="src/android/WPPlugin.gradle" custom="true" type="gradleReference" />
 
-        <resource-file src="libs/com.wp.android.service.aar" target="libs/com.wp.android.service.aar" /> 
+        <resource-file src="libs/wpa-release.aar" target="libs/wpa-release.aar" /> 
         <source-file src="src/android/WPPlugin.java" target-dir="src/kr/co/itsm/plugin" />
         <source-file src="src/android/WPService.java" target-dir="src/kr/co/itsm/plugin" />
-        <source-file src="src/android/WPStartUp.java" target-dir="src/kr/co/itsm/plugin" />
+    </platform>
+
+    <!-- IOS CONFIGURATION -->
+    <platform name="ios">
+        <config-file target="config.xml" parent="/*">
+            <feature name="WPPlugin">
+                <param name="ios-package" value="WPPlugin"/>
+            </feature>
+        </config-file>
+		
+		<!-- ENABLE PUSH CAPABILITY -->
+		<config-file parent="aps-environment" target="*/Entitlements-Debug.plist">
+		    <string>development</string>
+		</config-file>
+		<config-file parent="aps-environment" target="*/Entitlements-Release.plist">
+			<string>production</string>
+		</config-file>
+		
+		<resource-file src="src/ios/GoogleService-Info.plist" target="Resources/GoogleService-Info.plist" />
+		
+        <header-file src="src/ios/WPPlugin.h" />
+        <source-file src="src/ios/WPPlugin.m" />
+		
+		<header-file src="src/ios/AppDelegate+WPPlugin.h" />
+		<source-file src="src/ios/AppDelegate+WPPlugin.m" />
+		
+		<!-- FIREBASE COCOA PODS (not for the moment)-->
+		<!-- <framework src="Firebase/Messaging" type="podspec" spec="~> 0"/> -->
+		
+		<!-- FIREBASE LIBS -->
+		<header-file src="src/ios/firebase/Firebase.h" />
+		<framework src="src/ios/firebase/FirebaseAnalytics.framework" custom="true" />
+		<framework src="src/ios/firebase/FirebaseCore.framework" custom="true" />
+		<framework src="src/ios/firebase/FirebaseInstanceID.framework" custom="true" />
+		<framework src="src/ios/firebase/FirebaseMessaging.framework" custom="true" />
+		<framework src="src/ios/firebase/GoogleInterchangeUtilities.framework" custom="true" />
+		<framework src="src/ios/firebase/GoogleIPhoneUtilities.framework" custom="true" />
+		<framework src="src/ios/firebase/GoogleSymbolUtilities.framework" custom="true" />
+		<framework src="src/ios/firebase/GoogleUtilities.framework" custom="true" />
+			
+		<!-- OTHER NEEDED LIBS -->
+		<framework src="libc++.tbd" />
+		<framework src="libz.tbd" />
+		<framework src="AddressBook.framework" />
+		<framework src="libsqlite3.0.tbd" />
+		<framework src="libz.tbd" />
+		<framework src="Security.framework" />
     </platform>
 
     <!-- COPY FCM CONFIG FILES TO PLATFORM AFTER PLUGIN INSTALL OR PLATFORM PREPARE -->

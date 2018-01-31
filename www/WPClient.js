@@ -29,27 +29,18 @@ WPClient.prototype.getPreferences = function( success, error ){
 	exec(success, error, "WPPlugin", 'getPreferences', []);
 }
 // SET PREFERENCES //
-WPClient.prototype.setPreferences = function( sound, vibrate, success, error ){
-	exec(success, error, "WPPlugin", 'setPreferences', [sound, vibrate]);
+WPClient.prototype.setPreferences = function( sound, vibrate, snooze, success, error ){
+	exec(success, error, "WPPlugin", 'setPreferences', [sound, vibrate, snooze]);
 }
 // NOTIFICATION CALLBACK //
-// WPClient.prototype.onNotification = function( callback, success, error ){
-// 	WPClient.prototype.onNotificationReceived = callback;
-// 	exec(success, error, "WPPlugin", 'registerNotification',[]);
-// }
-// DEVICE ID REFRESH CALLBACK //
-WPClient.prototype.onDeviceIdChange = function( callback ){
-	WPClient.prototype.onDeviceIdChanged = callback;
+WPClient.prototype.onNotification = function( callback, success, error ){
+	WPClient.prototype.onNotificationReceived = callback;
+	exec(success, error, "WPPlugin", 'registerNotification',[]);
 }
 // DEFAULT NOTIFICATION CALLBACK //
-// WPClient.prototype.onNotificationReceived = function(payload){
-// 	console.log("Received push notification")
-// 	console.log(payload)
-// }
-// DEFAULT DEVICE ID REFRESH CALLBACK //
-WPClient.prototype.onDeviceIdChanged = function(deviceId){
-	console.log("Device ID refresh")
-	console.log(deviceId)
+WPClient.prototype.onNotificationReceived = function(payload){
+	console.log("Received push notification");
+	console.log(payload);
 }
 
 var wpClient = new WPClient();

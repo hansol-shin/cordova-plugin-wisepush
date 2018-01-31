@@ -25,46 +25,63 @@ public class WPPlugin extends CordovaPlugin {
 	private static final String PREFERENCE_KEY = "kr.co.itsm.plugin.WPNotification";
 	private static final String SOUND = "kr.co.itsm.plugin.WPNotification.SOUND";
 	private static final String VIBRATE = "kr.co.itsm.plugin.WPNotification.VIBRATE";
+	private static final String SNOOZE = "kr.co.itsm.plugin.WPNotification.SNOOZE";
 
     private CordovaInterface cordova;
 
     private WPService mService;
     private boolean mBound = false;
-    private ServiceConnection mConnection = new ServiceConnection(){
-        @Override
-        public void onServiceConnected(ComponentName className, IBinder service){
-            WPService.LocalBinder binder = (WPService.LocalBinder) service;
-            mService = binder.getService();
-            mBound = true;
-
-            mService.setNotificationCallback(new WPService.NotificationCallback() {
-                @Override
-                public void onMessageReceived(WPMessage msg) {
-
-                }
-            });
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName arg0){
-            mBound = false;
-        }
-    };
-
     public static CordovaWebView gWebView;
 	public static String notificationCallBack = "WPClient.onNotificationReceived";
-	public static String deviceIdRefreshCallBack = "WPClient.onDeviceIdChanged";
-    public static Boolean notificationCallBackReady = false;
+	public static Boolean notificationCallBackReady = false;
+	
+	// private onServiceConnected mConnection = new ServiceConnection(){
+    //     @Override
+    //     public void onServiceConnected(ComponentName className, IBinder service){
+    //         WPService.LocalBinder binder = (WPService.LocalBinder) service;
+    //         mService = binder.getService();
+    //         mBound = true;
+
+            // mService.setNotificationCallback(new WPService.NotificationCallback() {
+            //     @Override
+            //     public void onMessageReceived(WPMessage msg) {
+			// 		String callBack = "javascript:" + notificationCallBack + "()";
+			// 		if(notificationCallBackReady && gWebView != null){
+			// 			Log.d(TAG, "\tSent PUSH to view: " + callBack);
+			// 			gWebView.sendJavascript(callBack);
+			// 		}
+            //     }
+            // });
+    //     }
+
+    //     @Override
+    //     public void onServiceDisconnected(ComponentName arg0){
+    //         mBound = false;
+    //     }
+    // };
 
     public WPPlugin() {}
 
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
         this.cordova = cordova;
-        gWebView = webView;
+		gWebView = webView;
+		
+		mService = WPService.schedule( cordova.getActivity());
 
-        Intent intent = new Intent(cordova.getActivity(), WPService.class);
-        cordova.getActivity().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+		mService.setNotificationCallback(new WPService.NotificationCallback() {
+			@Override
+			public void onMessageReceived(WPMessage msg) {
+				String callBack = "javascript:" + notificationCallBack + "()";
+				if(notificationCallBackReady && gWebView != null){
+					Log.d(TAG, "\tSent PUSH to view: " + callBack);
+					gWebView.sendJavascript(callBack);
+				}
+			}
+		});
+
+        // Intent intent = new Intent(cordova.getActivity(), WPService.class);
+        // cordova.getActivity().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 
         Log.d(TAG, "==> WPClient initialize");
     }
@@ -93,9 +110,9 @@ public class WPPlugin extends CordovaPlugin {
 				cordova.getActivity().runOnUiThread(new Runnable() {
 					public void run() {
                     try{
-                        String deviceId = mService.getDeviceId();
+						
+						String deviceId = mService.getDeviceId();
                         callbackContext.success( deviceId );
-                        Log.d(TAG,"\tDevice ID: "+ deviceId);
                     }catch(Exception e){
                         Log.d(TAG,"\tError retrieving device id");
                     }
@@ -109,7 +126,6 @@ public class WPPlugin extends CordovaPlugin {
 						try{
 							String clientId = mService.getClientId();
 							callbackContext.success( clientId );
-							Log.d(TAG,"\tClient ID: "+ clientId);
 						}catch(Exception e){
 							Log.d(TAG,"\tError retrieving client id");
 						}
@@ -117,14 +133,14 @@ public class WPPlugin extends CordovaPlugin {
 				});
 			}
 			// NOTIFICATION CALLBACK REGISTER //
-			// else if (action.equals("registerNotification")) {
-			// 	notificationCallBackReady = true;
-			// 	cordova.getActivity().runOnUiThread(new Runnable() {
-			// 		public void run() {
-
-			// 		}
-			// 	});
-			// }
+			else if (action.equals("registerNotification")) {
+				notificationCallBackReady = true;
+				cordova.getActivity().runOnUiThread(new Runnable() {
+					public void run() {
+						
+					}
+				});
+			}
 			// UN/SUBSCRIBE TOPICS //
 			else if (action.equals("subscribeToTopic")) {
 				cordova.getThreadPool().execute(new Runnable() {
@@ -165,6 +181,7 @@ public class WPPlugin extends CordovaPlugin {
 				SharedPreferences sharedPref = cordova.getActivity().getSharedPreferences(PREFERENCE_KEY, Context.MODE_PRIVATE);
 				obj.put("sound", sharedPref.getBoolean(SOUND, true));
 				obj.put("vibrate", sharedPref.getBoolean(VIBRATE, true));
+				obj.put("snooze", sharedPref.getBoolean(SNOOZE, true));
 				callbackContext.success(obj);
 			}
 			else if (action.equals("setPreferences")) {
@@ -172,6 +189,7 @@ public class WPPlugin extends CordovaPlugin {
 				SharedPreferences.Editor editor = sharedPref.edit();
 				editor.putBoolean(SOUND, args.getBoolean(0));
 				editor.putBoolean(VIBRATE, args.getBoolean(1));
+				editor.putBoolean(SNOOZE, args.getBoolean(2));
 				editor.commit();
 				callbackContext.success();
 			}
@@ -199,9 +217,10 @@ public class WPPlugin extends CordovaPlugin {
 		return true;
     }
 
-    @Override
-	public void onDestroy() {
-		gWebView = null;
-		notificationCallBackReady = false;
-	}
+    // @Override
+	// public void onDestroy() {
+	// 	gWebView = null;
+	// 	notificationCallBackReady = false;
+	// 	this.cordova.getActivity().unbindService(mConnection);
+	// }
 }
