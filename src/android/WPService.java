@@ -1,5 +1,7 @@
 package kr.co.itsm.plugin;
 
+import android.app.AlarmManager;
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -14,6 +16,7 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
@@ -57,8 +60,8 @@ public class WPService extends JobService {
     }
 
     private static final String TAG = "WPService";
-    // private static final String SERVER_URI = "tcp://wp.hssa.me:48702";
-    private static final String SERVER_URI = "tcp://itsmpohang.hssa.me:48702";
+    private static final String SERVER_URI = "tcp://wp.hssa.me:48702";
+    // private static final String SERVER_URI = "tcp://itsmpohang.hssa.me:48702";
     private WPClient mClient = null;
     private static WPService minstance;
 
@@ -253,7 +256,7 @@ public class WPService extends JobService {
             @Override
             public void run() {
                 try {
-                    URL url = new URL("http://smart.pohang.go.kr:9001/device");
+                    URL url = new URL("https://smart.pohang.go.kr/api/device");
 
                     HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
                     urlConnection.setConnectTimeout(5000);
