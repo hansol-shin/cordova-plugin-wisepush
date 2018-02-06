@@ -19,7 +19,7 @@ repositories {
   }
 }
 dependencies {
-  compile ('com.wp.android.service:wpa-release:1.0@aar') {
+  compile ('com.wp.android.service:wpa-release:1.7@aar') {
     transitive=true
   }
   compile 'com.android.support:multidex:1.0.0'
