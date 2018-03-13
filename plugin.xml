@@ -57,6 +57,7 @@
 
         <resource-file src="libs/wpa-release.aar" target="libs/wpa-release.aar" /> 
         <source-file src="src/android/WPPlugin.java" target-dir="src/kr/co/itsm/plugin" />
+        <source-file src="src/android/MyWPDatabaseMessageStore.java" target-dir="src/kr/co/itsm/plugin" />
         <source-file src="src/android/WPFirebaseInstanceIDService.java" target-dir="src/kr/co/itsm/plugin" />
         <source-file src="src/android/WPFirebaseMessagingService.java" target-dir="src/kr/co/itsm/plugin" />
     </platform>
