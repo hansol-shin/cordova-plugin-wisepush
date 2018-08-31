@@ -20,9 +20,6 @@ import smartro.co.kr.main.SMTCatLinkageModuleMain;
 import smartro.co.kr.protocol.SMTMsgDataMap;
 import smartro.co.kr.transdirvermodule.SMTTransDriverMain.OnTransCallback;
 import smartro.co.kr.util.SMTCommon;
-import smartro.co.kr.util.SMTERRORCODE;
-
-import smartro.co.kr.main.SMTCatLinkageModuleMain;
 
 public class SMTCAT extends CordovaPlugin {
     private static final String TAG = "SMTCAT";
@@ -30,7 +27,9 @@ public class SMTCAT extends CordovaPlugin {
 
     private CordovaInterface cordova;
   CallbackContext connectCallback = null;
+  CallbackContext disconnectCallback = null;
   CallbackContext tradeCallback = null;
+  CallbackContext tradeCancelCallback = null;
   CallbackContext printCallback = null;
 
   private static int TRADE_APP = 1;		// 거래 승인
@@ -39,7 +38,6 @@ public class SMTCAT extends CordovaPlugin {
   private static int TRADE_LINKED_CONFIRM = 4;	// 연결 확인
   private static int TRADE_PAPER_MONEY_IN = 5;	// 수표 조회
 
-  private int mConnectType = 3;
   private boolean mIsConnect = false;
 
   private static SMTCatLinkageModuleMain mpModule = null;
@@ -53,7 +51,7 @@ public class SMTCAT extends CordovaPlugin {
         this.cordova = cordova;
 		    gWebView = webView;
 
-        mpModule = new SMTCatLinkageModuleMain(cordova.getActivity(), mConnectType, new SMTTransCallback(), false);
+        mpModule = new SMTCatLinkageModuleMain(cordova.getActivity(), 3, new SMTTransCallback(), false);
 
         Log.d(TAG, "==> SMTCAT initialize");
     }
@@ -75,23 +73,36 @@ public class SMTCAT extends CordovaPlugin {
           }
           // VERIFY CONNECTION //
           else if (action.equals("isConnected")) {
-              cordova.getActivity().runOnUiThread(new Runnable() {
+              cordova.getThreadPool().execute(new Runnable() {
                 public void run() {
-                  callbackContext.success( ""+mIsConnect );
+                  if (mIsConnect) {
+                    int nRet = 0;
+                    nRet = TradeMainProc(TRADE_LINKED_CONFIRM, 0, 0, 0, null, null, null);
+                    if (nRet < 0) {
+                      Log.d(TAG,"==> SMTCAT isConnected: false");
+                      callbackContext.success("false");
+                      mIsConnect = false;
+                    } else {
+                      Log.d(TAG,"==> SMTCAT isConnected: true");
+                      callbackContext.success("true");
+                    }
+                  } else {
+                    Log.d(TAG,"==> SMTCAT isConnected: false");
+                    callbackContext.success("false");
+                  }
                 }
               });
           }
           else if (action.equals("connect")) {
             connectCallback = callbackContext;
-            cordova.getActivity().runOnUiThread(new Runnable() {
+            cordova.getThreadPool().execute(new Runnable() {
               public void run() {
                 try {
                   int nRet = ConnectSync(args.getString(0), args.getInt(1));
-                  if (nRet < 0) {
-                    callbackContext.error(nRet);
-                  }
+                  if (nRet < 1)
+                    callbackContext.error(0);
                 } catch (Exception e) {
-                  callbackContext.error(0);
+                  callbackContext.error(e.toString());
                 }
               }
             });
@@ -99,8 +110,11 @@ public class SMTCAT extends CordovaPlugin {
           else if (action.equals("disconnect")) {
             cordova.getThreadPool().execute(new Runnable() {
               public void run() {
-                mpModule.SMTDeviceDisConnect();
-                callbackContext.success( "Connected" );
+                disconnectCallback = callbackContext;
+                if (mpModule != null)
+                  mpModule.SMTDeviceDisConnect();
+                else
+                  callbackContext.success();
               }
             });
           }
@@ -113,7 +127,27 @@ public class SMTCAT extends CordovaPlugin {
                   int amt =  args.getInt(1);
                   int instalment = args.getInt(2);
                   JSONArray arr = args.getJSONArray(3);
-                  int nRet = TradeMainProc(TRADE_APP, tradeType, amt, instalment, arr);
+                  int nRet = TradeMainProc(TRADE_APP, tradeType, amt, instalment, arr, null, null);
+                  if (nRet < 0) {
+                    callbackContext.error(nRet);
+                  }
+                } catch (Exception e) {
+                  callbackContext.error(0);
+                }
+              }
+            });
+          }
+          else if (action.equals("tradeCancel")) {
+            tradeCancelCallback = callbackContext;
+            cordova.getThreadPool().execute(new Runnable() {
+              public void run() {
+                try {
+                  int tradeType =  args.getInt(0);
+                  int amt =  args.getInt(1);
+                  int instalment = args.getInt(2);
+                  String approvalNo = args.getString(3);
+                  String approvalDate = args.getString(3);
+                  int nRet = TradeMainProc(TRADE_APP_CAN, tradeType, amt, instalment, null, approvalNo, approvalDate);
                   if (nRet < 0) {
                     callbackContext.error(nRet);
                   }
@@ -157,6 +191,19 @@ public class SMTCAT extends CordovaPlugin {
                   TradeMain("특수출력", "5301", SndData);
                 } catch (Exception e) {
                   callbackContext.error(0);
+                }
+              }
+            });
+          }
+          else if (action.equals("setOrderNo")) {
+            cordova.getThreadPool().execute(new Runnable() {
+              public void run() {
+                try {
+                  int no = args.getInt(0);
+                  orderNo = no;
+                  callbackContext.success();
+                } catch (Exception e) {
+                  callbackContext.error(e.toString());
                 }
               }
             });
@@ -252,9 +299,11 @@ public class SMTCAT extends CordovaPlugin {
               Object [] keys = mOutData.keySet().toArray();
 
               String serviceId = null;
+              String cardID = null;
               String approvalNo = null;
               String approvalDate = null;
               String message = "";
+              String issueName = "";
               String code = "";
 
               for(Object key : keys)
@@ -295,6 +344,18 @@ public class SMTCAT extends CordovaPlugin {
                   code = value;
                 }
 
+                // 카드번호
+                if(key.equals(SMTMsgDataMap.MSG_TYPE_CARD_NUMBER.Name) == true || key.equals(SMTMsgDataMap.MSG_TYPE_CARD_NUMBER.Number) == true)
+                {
+                  cardID = value;
+                }
+
+                // 발급사
+                if(key.equals(SMTMsgDataMap.MSG_TYPE_ISSUE_NAME.Name) == true || key.equals(SMTMsgDataMap.MSG_TYPE_ISSUE_NAME.Number) == true)
+                {
+                  issueName = value;
+                }
+
                 i++;
               }
 
@@ -304,8 +365,10 @@ public class SMTCAT extends CordovaPlugin {
                     try {
                       JSONObject res = new JSONObject();
                       res.put("orderNo", orderNo++);
+                      res.put("cardID", cardID);
                       res.put("approvalNo", approvalNo);
                       res.put("approvalDate", approvalDate);
+                      res.put("issueName", issueName);
 
                       tradeCallback.success(res);
                     } catch (Exception e) {
@@ -313,6 +376,14 @@ public class SMTCAT extends CordovaPlugin {
                     }
                   } else {
                     tradeCallback.error(message);
+                  }
+                }
+              } else if (serviceId.equals("2102")) {
+                if (tradeCancelCallback != null) {
+                  if (code.equals("00")) {
+                    tradeCancelCallback.success();
+                  } else {
+                    tradeCancelCallback.error(message);
                   }
                 }
               }
@@ -324,7 +395,8 @@ public class SMTCAT extends CordovaPlugin {
           case SMTCommon.EVT_DISCONNECT:
           {
             SMTLOG(String.format(Locale.KOREAN, "[EVENT] DISCONNECT (%d)!!!", nResult));
-
+            if (disconnectCallback != null)
+              disconnectCallback.success();
             mIsConnect = false;
             break;
           }
@@ -345,7 +417,7 @@ public class SMTCAT extends CordovaPlugin {
 
   }
 
-  private int TradeMainProc(int nType, int type, int amt, int instalment, JSONArray arr)
+  private int TradeMainProc(int nType, int type, int amt, int instalment, JSONArray arr, String approvalNo, String approvalDttm)
   {
     int nRet = 0;
     HashMap<String, String> mapData = new HashMap<String, String>();
@@ -417,8 +489,12 @@ public class SMTCAT extends CordovaPlugin {
         String strPrintData = new String();
         byte [] byEnd = new byte[1];
         byEnd[0] = (byte)0x0A;
+        byte[] magStart = new byte[1];
+        magStart[0] = (byte)0x17;
+        byte[] magEnd = new byte[1];
+        magEnd[0] = (byte)0x18;
 
-        strPrintData = String.format("주문번호 %3d", orderNo) + ConvertProtocolbyte(byEnd, 1);
+        strPrintData = ConvertProtocolbyte(magStart, 1) + String.format("주문번호 %3d", orderNo) + ConvertProtocolbyte(magEnd, 1) + ConvertProtocolbyte(byEnd, 1);
         strPrintData += "-----------------------------------------------" + ConvertProtocolbyte(byEnd, 1);
         strPrintData += "순번    상품명/상품코드      수량       금액    " + ConvertProtocolbyte(byEnd, 1);
         strPrintData += "-----------------------------------------------" + ConvertProtocolbyte(byEnd, 1);
@@ -445,14 +521,14 @@ public class SMTCAT extends CordovaPlugin {
       if(nType == TRADE_APP_CAN)
       {
         // 승인 번호
-        strTmp = ""+type;
+        strTmp = approvalNo;
         if(strTmp != null)
         {
           mapData.put(SMTMsgDataMap.MSG_TYPE_APPROVAL_ID.Name, strTmp);
         }
 
         // 승인 일자
-        strTmp = null;
+        strTmp = approvalDttm;
         if(strTmp != null)
         {
           mapData.put(SMTMsgDataMap.MSG_TYPE_BASE_TRADE_DATE.Name, strTmp);

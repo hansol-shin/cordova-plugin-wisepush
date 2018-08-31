@@ -35,7 +35,6 @@
         <framework src="src/android/SMTCAT.gradle" custom="true" type="gradleReference" />
 
         <resource-file src="libs/SMTCatLinkageModule.jar" target="libs/SMTCatLinkageModule.jar" /> 
-        <resource-file src="libs/BixolonPrinter.jar" target="libs/BixolonPrinter.jar" /> 
         <source-file src="src/android/SMTCAT.java" target-dir="src/kr/co/itsm/plugin" />
     </platform>
 </plugin>
