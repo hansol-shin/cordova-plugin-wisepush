@@ -111,10 +111,12 @@ public class SMTCAT extends CordovaPlugin {
             cordova.getThreadPool().execute(new Runnable() {
               public void run() {
                 disconnectCallback = callbackContext;
-                if (mpModule != null)
+                if (mpModule != null) {
                   mpModule.SMTDeviceDisConnect();
-                else
+                  mpModule = null;
+                } else {
                   callbackContext.success();
+                }
               }
             });
           }
@@ -129,10 +131,10 @@ public class SMTCAT extends CordovaPlugin {
                   JSONArray arr = args.getJSONArray(3);
                   int nRet = TradeMainProc(TRADE_APP, tradeType, amt, instalment, arr, null, null);
                   if (nRet < 0) {
-                    callbackContext.error(nRet);
+                    callbackContext.error("결제단말기 통신오류");
                   }
                 } catch (Exception e) {
-                  callbackContext.error(0);
+                  callbackContext.error("시스템 오류");
                 }
               }
             });
@@ -487,6 +489,7 @@ public class SMTCAT extends CordovaPlugin {
 
       if (nType == TRADE_APP && arr.length() > 0) {
         String strPrintData = new String();
+        byte [] bysrc = new byte[1];
         byte [] byEnd = new byte[1];
         byEnd[0] = (byte)0x0A;
         byte[] magStart = new byte[1];
@@ -494,18 +497,29 @@ public class SMTCAT extends CordovaPlugin {
         byte[] magEnd = new byte[1];
         magEnd[0] = (byte)0x18;
 
-        strPrintData = ConvertProtocolbyte(magStart, 1) + String.format("주문번호 %3d", orderNo) + ConvertProtocolbyte(magEnd, 1) + ConvertProtocolbyte(byEnd, 1);
+        strPrintData = " " + ConvertProtocolbyte(byEnd, 1) + " " + ConvertProtocolbyte(byEnd, 1);
+        strPrintData += ConvertProtocolbyte(magStart, 1) + "주문번호를 확인하세요" + ConvertProtocolbyte(byEnd, 1);
+        strPrintData += " " + ConvertProtocolbyte(byEnd, 1);
+        strPrintData += String.format("   주문번호   %3d", orderNo) + ConvertProtocolbyte(magEnd, 1) + ConvertProtocolbyte(byEnd, 1);
+        strPrintData += " " + ConvertProtocolbyte(byEnd, 1) + " " + ConvertProtocolbyte(byEnd, 1);
+
         strPrintData += "-----------------------------------------------" + ConvertProtocolbyte(byEnd, 1);
-        strPrintData += "순번    상품명/상품코드      수량       금액    " + ConvertProtocolbyte(byEnd, 1);
+        strPrintData += "순번    상품명               수량       금액    " + ConvertProtocolbyte(byEnd, 1);
         strPrintData += "-----------------------------------------------" + ConvertProtocolbyte(byEnd, 1);
         try {
           for (int i = 0; i < arr.length(); i++) {
             JSONObject rec = arr.getJSONObject(i);
             int cnt = rec.getInt("cnt");
-            int _amt = rec.getInt("amt");
-            String name = rec.getString("name");
+            JSONObject menu = rec.getJSONObject("menu");
+            int _amt = menu.getInt("saleAmt");
+            String name = menu.getJSONObject("name").getString("ko");
+            JSONArray opts = rec.getJSONArray("opts");
+            for (int j = 0; j < opts.length(); j++) {
+              JSONObject opt = opts.getJSONObject(j);
+              _amt += opt.getInt("amt");
+            }
 
-            strPrintData += String.format("   %,d    %s         %,d        %s", i+1, name, cnt, _amt) + ConvertProtocolbyte(byEnd, 1);
+            strPrintData += String.format("  %,d     %s  %,d개  %s원", i+1, name, cnt, _amt) + ConvertProtocolbyte(byEnd, 1);
             strPrintData += "-----------------------------------------------" + ConvertProtocolbyte(byEnd, 1);
           }
         } catch (Exception e) {
@@ -652,43 +666,22 @@ public class SMTCAT extends CordovaPlugin {
 
     byEnd[0] = (byte)0x0A;
 
-    strPrintData = "                     영수증" + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += "  " + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += "  " + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += "테스트매장" + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += "사업자번호 : 000-00-00000" + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += "경북 포항시 남구 대이로 63번길 6" + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += "대표 : 김이박    Tel) 00000000000" + ConvertProtocolbyte(byEnd, 1);
+    strPrintData += ConvertProtocolbyte(byEnd, 1);
+    strPrintData += ConvertProtocolbyte(byEnd, 1);
+    strPrintData += ConvertProtocolbyte(byEnd, 1);
+
     strPrintData += "-----------------------------------------------" + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += "순번    상품명/상품코드      수량       금액    " + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += "-----------------------------------------------" + ConvertProtocolbyte(byEnd, 1);
+    for (int i = 0; i < arr.length(); i++) {
+      try {
+        bysrc[0] = 0x17;
+        strPrintData = ConvertProtocolbyte(bysrc, 1);
+        strPrintData += arr.getString(i);
+        bysrc[0] = 0x18;
+        strPrintData += ConvertProtocolbyte(bysrc, 1) + ConvertProtocolbyte(byEnd, 1);
+      } catch (JSONException e) {
 
-    int total = 0;
-    try {
-      for (int i = 0; i < arr.length(); ++i) {
-        JSONObject rec = arr.getJSONObject(i);
-        int cnt = rec.getInt("cnt");
-        int amt = rec.getInt("amt");
-        String name = rec.getString("name");
-
-        total += cnt * amt;
-
-        strPrintData += String.format("   %,d    %s         %,d        %s", i+1, name, cnt, amt) + ConvertProtocolbyte(byEnd, 1);
-        strPrintData += "-----------------------------------------------" + ConvertProtocolbyte(byEnd, 1);
       }
-    } catch (Exception e) {
-      printCallback.error(0);
     }
-
-    strPrintData += String.format("                         과세물품     %,d", (int)(total * 0.9)) + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += String.format("                         부 가 세     %,d", (int)(total * 0.1)) + ConvertProtocolbyte(byEnd, 1);
-
-    strPrintData += String.format("                         결 제 액     %,d", total) + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += "-----------------------------------------------" + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += "고객님 감사합니다." + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += "-----------------------------------------------" + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += "교환,환불시 영수증을 필히 지참해주십시오." + ConvertProtocolbyte(byEnd, 1);
-    strPrintData += "영수증 미지참시 교환환불이 불가하오니 이점 양해바랍니다." + ConvertProtocolbyte(byEnd, 1);
     strPrintData += "-----------------------------------------------" + ConvertProtocolbyte(byEnd, 1);
 
     strPrintData += ConvertProtocolbyte(byEnd, 1);
